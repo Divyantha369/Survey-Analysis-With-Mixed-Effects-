@@ -1,0 +1,305 @@
+---
+title: "JD Survey Study"
+author: "Divyantha Praneed"
+date: "2025-01-30"
+output: pdf_document
+---
+
+
+```{r}
+
+library(readxl)
+post_survey <- read_excel("C:/Users/divya/OneDrive/Desktop/Clin Research/JD Survey/post_survey.xlsx")
+pre_survey <- read_excel("C:/Users/divya/OneDrive/Desktop/Clin Research/JD Survey/pre_survey.xlsx")
+Demographic_Data <- read_excel("Demographic Data (updated).xlsx")
+colnames(Demographic_Data)[1]<-"patient_id"
+Demographic_Data$Age <- (Demographic_Data$Age - mean(Demographic_Data$Age))/sd(Demographic_Data$Age)
+
+```
+
+
+```{r}
+library(dplyr)
+library(janitor)
+library(tidyr)
+library(ggplot2)
+
+# Preprocessing
+
+pre_survey <- pre_survey %>%
+  clean_names()  
+
+post_survey <- post_survey %>%
+  clean_names() 
+
+pre_survey <- pre_survey %>%
+  group_by(patient_id) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  ungroup()
+
+pre_survey <- pre_survey %>%
+  arrange(patient_id)
+
+post_survey <- post_survey %>%
+  group_by(patient_id) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  ungroup()
+
+long_pre <- pre_survey %>%
+  pivot_longer(
+    cols = c(
+      "frequency_of_communication_with_icu_doctors",
+      "ease_of_getting_information",
+      "understanding_of_information",
+      "honesty_of_information",
+      "completeness_of_information",
+      "consistency_of_information",
+      "how_included_or_excluded_did_you_feel_in_the_decision_making_process",
+      "how_supported_did_you_feel_during_the_decision_making_process",
+      "did_you_feel_you_had_control_over_the_care_of_your_family_member",
+      "when_making_decisions_did_you_have_adequate_time_to_have_your_concerns_addressed_and_questions_answered"
+    ),
+    names_to = "question",    
+    values_to = "score"       
+  )
+
+long_post <- post_survey %>%
+  pivot_longer(
+    cols = c(
+      "frequency_of_communication_with_icu_doctors",
+      "ease_of_getting_information",
+      "understanding_of_information",
+      "honesty_of_information",
+      "completeness_of_information",
+      "consistency_of_information",
+      "how_included_or_excluded_did_you_feel_in_the_decision_making_process",
+      "how_supported_did_you_feel_during_the_decision_making_process",
+      "did_you_feel_you_had_control_over_the_care_of_your_family_member",
+      "when_making_decisions_did_you_have_adequate_time_to_have_your_concerns_addressed_and_questions_answered"
+    ),
+    names_to = "question",    
+    values_to = "score"       
+  )
+
+
+question_mapping <- c(
+  "frequency_of_communication_with_icu_doctors" = "Q1",
+  "ease_of_getting_information" = "Q2",
+  "understanding_of_information" = "Q3",
+  "honesty_of_information" = "Q4",
+  "completeness_of_information" = "Q5",
+  "consistency_of_information" = "Q6",
+  "how_included_or_excluded_did_you_feel_in_the_decision_making_process" = "Q7",
+  "how_supported_did_you_feel_during_the_decision_making_process" = "Q8",
+  "did_you_feel_you_had_control_over_the_care_of_your_family_member" = "Q9",
+  "when_making_decisions_did_you_have_adequate_time_to_have_your_concerns_addressed_and_questions_answered" = "Q10"
+)
+
+
+long_pre <- pre_survey %>%
+  pivot_longer(
+    cols = all_of(names(question_mapping)), 
+    names_to = "question",
+    values_to = "score"
+  ) %>%
+  mutate(question = recode(question, !!!question_mapping))  
+
+
+
+long_post <- post_survey %>%
+  pivot_longer(
+    cols = all_of(names(question_mapping)), 
+    names_to = "question",
+    values_to = "score"
+  ) %>%
+  mutate(question = recode(question, !!!question_mapping))
+
+
+
+```
+
+
+
+
+```{r}
+
+long_pre <- long_pre %>%
+   drop_na(score) %>%  
+  mutate(score = factor(score, levels = 1:5))
+
+ggplot(long_pre, aes(x = score, fill = question)) +
+  geom_bar(position = "dodge", color = "black") +
+  facet_wrap(~ question, drop = FALSE) + 
+  scale_x_discrete(drop = FALSE) +        
+  theme_bw(base_size = 14) +
+  labs(
+    title = "Bar Chart of Likert Responses (Pre-Survey)",
+    x = "Likert Score",
+    y = "Number of Responses"
+  ) +
+  scale_fill_brewer(palette = "Paired")
+
+
+
+
+```
+
+```{r}
+
+long_post <- long_post %>%
+   drop_na(score) %>%  
+  mutate(score = factor(score, levels = 1:5))
+
+ggplot(long_pre, aes(x = score, fill = question)) +
+  geom_bar(position = "dodge", color = "black") +
+  facet_wrap(~ question, drop = FALSE) +  
+  scale_x_discrete(drop = FALSE) +        
+  theme_bw(base_size = 14) +
+  labs(
+    title = "Bar Chart of Likert Responses (Post-Survey)",
+    x = "Likert Score",
+    y = "Number of Responses"
+  ) +
+  scale_fill_brewer(palette = "Paired")
+
+```
+
+
+
+```{r}
+
+
+# Data for Pre Survey
+pre_survey <- data.frame(
+  Question = 1:10,  # Questions 1 to 10
+  Mean = c(4.65625, 4.606060606, 4.515151515, 4.545454545, 4.59375, 4.606060606, 4.575757576, 4.484848485, 4.636363636, 4.212121212),
+  Lower_CI = c(4.398028104, 4.365721299, 4.243790539, 4.302832762, 4.331805795, 4.311332013, 4.223757856, 4.187884245, 4.413640456, 3.884449734),
+  Upper_CI = c(4.914471896, 4.846399914, 4.786512492, 4.788076329, 4.855694205, 4.900789199, 4.927757295, 4.781812725, 4.859086816, 4.53979269)
+)
+
+# Data for Post Survey
+post_survey <- data.frame(
+  Question = 1:10,  
+  Mean = c(4.851851852, 4.777777778, 4.703703704, 4.851851852, 4.923076923, 4.807692308, 4.296296296, 4.851851852, 4.851851852, 4.481481481),
+  Lower_CI = c(4.679833778, 4.560004002, 4.499374114, 4.715301895, 4.818622855, 4.618782474, 3.754567485, 4.715301895, 4.715301895, 4.197467847),
+  Upper_CI = c(5.023869926, 4.995551554, 4.908033293, 4.988401808, 5.027530991, 4.996602141, 4.838025108, 4.988401808, 4.988401808, 4.765495116)
+)
+
+
+pre_survey$Group <- "Pre"
+post_survey$Group <- "Post"
+
+combined_data <- rbind(pre_survey, post_survey)
+
+#plot
+ggplot(combined_data, aes(x = Question, y = Mean, color = Group, fill = Group)) +
+  geom_line(size = 1) +  # Line for means
+  geom_point(size = 3) +  # Points for means
+  geom_ribbon(aes(ymin = Lower_CI, ymax = Upper_CI), alpha = 0.2, color = NA) +  
+  labs(
+    title = "Pre vs. Post Survey Mean Scores with 95% Confidence Intervals",
+    x = "Question Number",
+    y = "Mean Score"
+  ) +
+  scale_x_continuous(breaks = 1:10) +  
+  theme_minimal(base_size = 14) +
+  theme(legend.title = element_blank())  
+
+
+```
+
+
+
+
+```{r}
+pre_survey$sum <- rowSums(pre_survey[,2:11], na.rm = TRUE)
+post_survey$sum <- rowSums(post_survey[,2:11], na.rm = TRUE)
+
+```
+
+
+
+```{r}
+
+combined_pre <- long_pre %>%
+  left_join(Demographic_Data, by = "patient_id")
+combined_post <- long_post %>%
+  left_join(Demographic_Data, by = "patient_id")
+combined_pre <- combined_pre %>%
+  mutate(time = "Pre")
+combined_post <- combined_post %>%
+  mutate(time = "Post")
+
+combined_data <- bind_rows(combined_pre, combined_post)
+combined_data <- combined_data %>%
+  mutate(score = factor(score, levels = 1:5, ordered = TRUE))
+
+
+
+```
+
+
+```{r}
+library(ordinal)
+
+
+model_ordinal <- clmm(
+  score ~ time 
+      + (1 | patient_id),
+  data = combined_data
+)
+
+summary(model_ordinal)
+
+```
+
+```{r}
+model_fixed <- clm(
+  score ~ time,
+  data = combined_data
+)
+
+
+summary(model_fixed)
+
+```
+
+
+
+
+
+
+```{r}
+model_ordinal <- clmm(
+  score ~ time + Age + Gender
+      + (1 | patient_id),
+  data = combined_data
+)
+
+summary(model_ordinal)
+```
+
+
+
+```{r}
+model_ordinal <- clmm(
+  score ~ time + `Illness Severity/ Prism Score`
+      + (1 | patient_id),
+  data = combined_data
+)
+
+summary(model_ordinal)
+```
+
+
+```{r}
+model_ordinal <- clmm(
+  score ~ time + `Number of specialists involved in Care`
+      + (1 | patient_id),
+  data = combined_data
+)
+
+summary(model_ordinal)
+```
+
+
